@@ -1,0 +1,86 @@
+;
+; Eyepatch.inf
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Sample ; TODO: edit Class
+ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
+Provider=%ManufacturerName%
+CatalogFile=Eyepatch.cat
+DriverVer= ; TODO: set DriverVer in stampinf property pages
+
+[DestinationDirs]
+DefaultDestDir = 12
+Eyepatch_Device_CoInstaller_CopyFiles = 11
+
+; ================= Class section =====================
+
+[ClassInstall32]
+Addreg=SampleClassReg
+
+[SampleClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-5
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+Eyepatch.sys  = 1,,
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%Eyepatch.DeviceDesc%=Eyepatch_Device, Root\Eyepatch ; TODO: edit hw-id
+
+[Eyepatch_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+Eyepatch.sys
+
+;-------------- Service installation
+[Eyepatch_Device.NT.Services]
+AddService = Eyepatch,%SPSVCINST_ASSOCSERVICE%, Eyepatch_Service_Inst
+
+; -------------- Eyepatch driver install sections
+[Eyepatch_Service_Inst]
+DisplayName    = %Eyepatch.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\Eyepatch.sys
+
+;
+;--- Eyepatch_Device Coinstaller installation ------
+;
+
+[Eyepatch_Device.NT.CoInstallers]
+AddReg=Eyepatch_Device_CoInstaller_AddReg
+CopyFiles=Eyepatch_Device_CoInstaller_CopyFiles
+
+[Eyepatch_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[Eyepatch_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[Eyepatch_Device.NT.Wdf]
+KmdfService =  Eyepatch, Eyepatch_wdfsect
+[Eyepatch_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+ClassName="Samples" ; TODO: edit ClassName
+DiskName = "Eyepatch Installation Disk"
+Eyepatch.DeviceDesc = "Eyepatch Device"
+Eyepatch.SVCDESC = "Eyepatch Service"
