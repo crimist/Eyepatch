@@ -5,15 +5,12 @@
 NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath) {
 	DbgPrint("DriverEntry: %p %ls\n", DriverObject, RegistryPath);
 
-	DriverObject->DriverUnload = DriverUnload;
+	NTSTATUS status = STATUS_SUCCESS;
 
-	registerCallback();
-
-	return STATUS_SUCCESS;
+	return status;
 }
 
 VOID NTAPI DriverUnload(IN PDRIVER_OBJECT driver) {
 	DbgPrint("DriverUnload: %p\n", driver);
-
 	return;
 }

@@ -152,11 +152,13 @@
   <ItemGroup>
     <ClCompile Include="callbacks.c" />
     <ClCompile Include="driver.c" />
+    <ClCompile Include="socket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="callbacks.h" />
     <ClInclude Include="driver.h" />
     <ClInclude Include="includes.h" />
+    <ClInclude Include="socket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -12,7 +12,7 @@ void registerCallback() {
 	operationRegistration[0].Operations |= OB_OPERATION_HANDLE_CREATE;
 	operationRegistration[0].Operations |= OB_OPERATION_HANDLE_DUPLICATE;
 	operationRegistration[0].PreOperation = preOperationCallback;
-	operationRegistration[0].PostOperation = postOperationCallback; 
+	operationRegistration[0].PostOperation = postOperationCallback;
 
 	callback.Version = OB_FLT_REGISTRATION_VERSION;
 	callback.OperationRegistrationCount = 1;
