@@ -1,3 +1,0 @@
-TPI into lsass.exe and then get a handle from there?
-	* BE monitors lsass but will it detect tpi?
-	* Handle from lsass is external and externals kinda suck

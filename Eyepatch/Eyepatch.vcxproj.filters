@@ -24,27 +24,36 @@
     </Inf>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="driver.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="callbacks.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="socket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="memory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="driver_abuse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="entry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="driver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="includes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="callbacks.h">
+    <ClInclude Include="socket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="socket.h">
+    <ClInclude Include="memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="driver_abuse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="entry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
