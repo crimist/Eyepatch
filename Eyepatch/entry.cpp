@@ -2,20 +2,34 @@
 #include "entry.h"
 #include "driver_abuse.h"
 
-// TODO: Load unsigned w/ vuln driver and see if driver in proclists (https://github.com/alxbrn/gdrv-loader)
+// TODO: Load unsigned w/ vuln driver and see if driver in proclists
+//	https://github.com/z175/kdmapper
+//	maybe https://github.com/alxbrn/gdrv-loader?
+// TODO: Remove self and abusable driver from kernel module list
+//	https://www.unknowncheats.me/forum/c-and-c-/167462-kernel-writing-battleye-dayz-sa-patchguard-ssdt-function.html
+//		See: GetModuleArray(), GetNumberOfModules(), 
+//	https://github.com/NMan1/Rainbow-Six-Cheat/blob/a0cb718624d7880ede95f4a252345dae9e816fc7/OverflowDriver/OverflowDriver/Clean.c
+//		this is sigged as fuck so rewrite
+//		also xor the the hardcode timestamps and the pattern so that they can't be sigged
+//	maybe instead of removing them just overwrite the timestamp and name
+// TODO: use different communication method since I'm pretty sure devices are detected as fuck
 
 UNICODE_STRING EYEPATCH_DEVICE_NAME = RTL_CONSTANT_STRING(L"\\Device\\eyepatch");
 UNICODE_STRING EYEPATCH_SYMLINK_NAME = RTL_CONSTANT_STRING(L"\\??\\eyepatchlink");
 DRIVER_OBJECT *selfDriverGlobal = nullptr;
 
 // https://github.com/alxbrn/km-um-communication
+// https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/defining-i-o-control-codes
+#define EYEPATCH_IOCTL_WALK_DRIVERS	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1000, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define EYEPATCH_IOCTL_HIDE_DRIVER	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1001, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define EYEPATCH_IOCTL_EXIT			CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1002, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
 NTSTATUS IRPDistpatch(DEVICE_OBJECT *device, IRP *irp) {
+	DbgPrint("[IRPDistpatch] Called\n");
+
 	UNREFERENCED_PARAMETER(device);
 	NTSTATUS status = STATUS_SUCCESS;
 	auto irpsp = IoGetCurrentIrpStackLocation(irp);
-	DbgPrint("[IRPDistpatch] Called\n");
-
-	irpsp->FileObject;
 
 	switch (irpsp->MajorFunction) {
 		case IRP_MJ_CREATE:
@@ -34,7 +48,7 @@ NTSTATUS IRPDistpatch(DEVICE_OBJECT *device, IRP *irp) {
 					crim::WalkDrivers();
 					break;
 				case EYEPATCH_IOCTL_HIDE_DRIVER:
-					crim::HideDriver(selfDriverGlobal);
+					crim::HideDriverSelf(selfDriverGlobal);
 					break;
 				case EYEPATCH_IOCTL_EXIT:
 					DriverUnload(selfDriverGlobal);
@@ -102,9 +116,6 @@ VOID DriverUnload(IN PDRIVER_OBJECT driver) {
 	if (driver->DeviceObject != NULL) {
 		IoDeleteDevice(driver->DeviceObject);
 	}
-
-	RtlFreeUnicodeString(&EYEPATCH_DEVICE_NAME);
-	RtlFreeUnicodeString(&EYEPATCH_SYMLINK_NAME);
 
 	DbgPrint("[DriverUnload] Driver unloaded\n");
 }
