@@ -73,17 +73,23 @@
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)\build\$(Platform)_$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\tmp\$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <OutDir>$(SolutionDir)\build\$(Platform)_$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\tmp\$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <IntDir>$(SolutionDir)tmp\$(Platform)\$(ConfigurationName)\</IntDir>
+    <IntDir>$(SolutionDir)\tmp\$(Platform)_$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\build\$(Platform)_$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <IntDir>$(SolutionDir)tmp\$(Platform)\$(ConfigurationName)\</IntDir>
+    <IntDir>$(SolutionDir)\tmp\$(Platform)_$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\build\$(Platform)_$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
@@ -95,11 +101,35 @@
       </LanguageStandard>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalOptions>/Zc:sizedDealloc- %(AdditionalOptions)</AdditionalOptions>
+      <UseFullPaths>false</UseFullPaths>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>
+      </LanguageStandard>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalOptions>/Zc:sizedDealloc- %(AdditionalOptions)</AdditionalOptions>
+      <UseFullPaths>false</UseFullPaths>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <LanguageStandard>
+      </LanguageStandard>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalOptions>/Zc:sizedDealloc- %(AdditionalOptions)</AdditionalOptions>
+      <UseFullPaths>false</UseFullPaths>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <LanguageStandard>
+      </LanguageStandard>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalOptions>/Zc:sizedDealloc- %(AdditionalOptions)</AdditionalOptions>
+      <UseFullPaths>false</UseFullPaths>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -109,6 +139,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="clean.cpp" />
     <ClCompile Include="entry.cpp">
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpplatest</LanguageStandard>
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdcpplatest</LanguageStandard>
@@ -118,12 +149,14 @@
     <ClCompile Include="socket.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="clean.h" />
     <ClInclude Include="entry.h" />
     <ClInclude Include="driver_abuse.h" />
     <ClInclude Include="includes.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="nt.h" />
     <ClInclude Include="socket.h" />
+    <ClInclude Include="xor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

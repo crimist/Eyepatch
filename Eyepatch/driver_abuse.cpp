@@ -36,12 +36,12 @@ void crim::WalkDrivers() {
 	
 	auto status = nt::ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("[crim::WalkDrivers] ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x\n", status);
+		DPrint("ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x", status);
 		return;
 	}
 
 	for (auto i = 0; i < modules->NumberOfModules; i++) {
-		DbgPrint("[crim::WalkDrivers] %s\n", modules->Modules[i].FullPathName);
+		DPrint("%s", modules->Modules[i].FullPathName);
 	}
 
 	delete modules;
@@ -53,7 +53,7 @@ void crim::HideDriverSelf(DRIVER_OBJECT *driver) {
 	KIRQL oldIrql = KeRaiseIrqlToDpcLevel(); // prevent interupts
 
 	if (driver->DriverUnload != DriverUnload) {
-		DbgPrint("[crim::HideDriver] Warning driver object not self - unless first call will be ignored\n");
+		DPrint("Warning driver object not self - unless first call will be ignored");
 	}
 
 	// https://github.com/nbqofficial/HideDriver/blob/master/Driver.c
@@ -64,7 +64,7 @@ void crim::HideDriverSelf(DRIVER_OBJECT *driver) {
 	static auto nextEntry = (nt::PLDR_DATA_TABLE_ENTRY)selfEntry->InLoadOrderLinks.Flink;
 
 	if (!hidden) {
-		DbgPrint("[crim::HideDriver] Hiding driver %p\n", driver);
+		DPrint("Hiding driver %p", driver);
 		//UNICODE_STRING name;
 		//RtlInitUnicodeString(&name, L"Intel disk schedule");
 		//driver->DriverName = name;
@@ -77,7 +77,7 @@ void crim::HideDriverSelf(DRIVER_OBJECT *driver) {
 		selfEntry->InLoadOrderLinks.Flink = (PLIST_ENTRY)selfEntry;
 		selfEntry->InLoadOrderLinks.Blink = (PLIST_ENTRY)selfEntry;
 	} else {
-		DbgPrint("[crim::HideDriver] Unhiding driver %p\n", driver);
+		DPrint("Unhiding driver %p", driver);
 
 		prevEntry->InLoadOrderLinks.Flink = (PLIST_ENTRY)selfEntry;
 		nextEntry->InLoadOrderLinks.Blink = (PLIST_ENTRY)selfEntry;
@@ -101,7 +101,7 @@ NTSTATUS crim::ForceUnloadDriver(char name[]) {
 
 	auto status = nt::ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("[crim::WalkDrivers] ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x\n", status);
+		DPrint("ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x", status);
 		return -1; // TODO: find error code
 	}
 

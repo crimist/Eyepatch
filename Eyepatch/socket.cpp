@@ -1,3 +1,4 @@
+#if 0 // disable for now
 #include "includes.h"
 #include "socket.h"
 
@@ -139,3 +140,4 @@ NTSTATUS socket::bind() {
 
 	return STATUS_SUCCESS;
 }
+#endif

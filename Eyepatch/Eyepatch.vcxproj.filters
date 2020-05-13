@@ -36,6 +36,9 @@
     <ClCompile Include="entry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="clean.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes.h">
@@ -54,6 +57,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="nt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clean.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
