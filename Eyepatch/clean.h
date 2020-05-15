@@ -1,5 +1,6 @@
 #pragma once
 
 namespace clean {
-	bool ClearPiDDB();
+	bool ClearPidDb();
+	bool ClearMmUnloadDrivers();
 }

@@ -37,6 +37,7 @@ void crim::WalkDrivers() {
 	auto status = nt::ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
 	if (!NT_SUCCESS(status)) {
 		DPrint("ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x", status);
+		delete modules;
 		return;
 	}
 
@@ -45,8 +46,6 @@ void crim::WalkDrivers() {
 	}
 
 	delete modules;
-
-	return;
 }
 
 void crim::HideDriverSelf(DRIVER_OBJECT *driver) {
@@ -94,26 +93,25 @@ void crim::HideDriverSelf(DRIVER_OBJECT *driver) {
 }
 
 NTSTATUS crim::ForceUnloadDriver(char name[]) {
-	// TODO: piss-taker, code breaker
-
+	// unfinished
 	auto modules = new(NonPagedPoolNx) nt::RTL_PROCESS_MODULES;
 	ULONG retlen;
 
 	auto status = nt::ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
 	if (!NT_SUCCESS(status)) {
 		DPrint("ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x", status);
-		return -1; // TODO: find error code
+		delete modules;
+		return STATUS_UNSUCCESSFUL;
 	}
 
 	auto nameLen = strlen(name);
 	for (auto i = 0; i < modules->NumberOfModules; i++) {
-		if (strncmp(modules->Modules->FullPathName + modules->Modules->OffsetToFileName, name, nameLen)) {
+		if (strncmp(modules->Modules[i].FullPathName + modules->Modules[i].OffsetToFileName, name, nameLen)) {
 			// matched the driver
 			// find it's DriverUnload() function
 		}
 	}
 
 	delete modules;
-
 	return STATUS_SUCCESS;
 }

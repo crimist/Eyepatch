@@ -53,4 +53,12 @@ namespace nt {
 		LIST_ENTRY ServiceTagLinks;
 		LIST_ENTRY StaticLinks;
 	} LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
+
+	typedef struct _piddbcache {
+		LIST_ENTRY		List;
+		UNICODE_STRING	DriverName;
+		ULONG			TimeDateStamp;
+		NTSTATUS		LoadStatus;
+		char			_0x0028[16]; // data from the shim engine, or uninitialized memory for custom drivers
+	} _piddbcache, piddbcache;
 }

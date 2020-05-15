@@ -3,21 +3,22 @@
 #include "driver_abuse.h"
 #include "xor.h"
 #include "clean.h"
+#include "helpers.h"
 
-// TODO: Load unsigned w/ vuln driver and see if driver in proclists
+// todo: try to load unsigned
+//	check if it shows up in the list if loaded w/ these
 //	https://github.com/z175/kdmapper
-//	maybe https://github.com/alxbrn/gdrv-loader?
-// TODO: Remove self and abusable driver from kernel module list
-//	https://www.unknowncheats.me/forum/c-and-c-/167462-kernel-writing-battleye-dayz-sa-patchguard-ssdt-function.html
-//		See: GetModuleArray(), GetNumberOfModules(), 
-//	https://github.com/NMan1/Rainbow-Six-Cheat/blob/a0cb718624d7880ede95f4a252345dae9e816fc7/OverflowDriver/OverflowDriver/Clean.c
-//		this is sigged as fuck so rewrite
-//		also xor the the hardcode timestamps and the pattern so that they can't be sigged
-//	maybe instead of removing them just overwrite the timestamp and name
-// TODO: use different communication method since I'm pretty sure devices are detected as fuck
+//	maybe https://github.com/alxbrn/gdrv-loader
 
-UNICODE_STRING EYEPATCH_DEVICE_NAME = RTL_CONSTANT_STRING(xcw(L"\\Device\\eyepatch"));
-UNICODE_STRING EYEPATCH_SYMLINK_NAME = RTL_CONSTANT_STRING(xcw(L"\\??\\eyepatchlink"));
+// todo: use different communication method w/ usermode since I'm pretty sure io dispatch is detected as fuck
+//	examples: https://github.com/alxbrn/km-um-communication
+
+// todo: use these to test if the bypasses work
+//	test detection w/ this driver: https://github.com/ApexLegendsUC/anti-cheat-emulator
+//	info: https://secret.club/2020/03/31/battleye-developer-tracking.html
+
+// todo: maybe turn driver signing off so that $WDKTestSign isn't in the binary to be sigged
+
 DRIVER_OBJECT *selfDriverGlobal = nullptr;
 
 // https://github.com/alxbrn/km-um-communication
@@ -25,6 +26,7 @@ DRIVER_OBJECT *selfDriverGlobal = nullptr;
 #define EYEPATCH_IOCTL_WALK_DRIVERS	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1000, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define EYEPATCH_IOCTL_HIDE_DRIVER	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1001, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define EYEPATCH_IOCTL_EXIT			CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1002, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define EYEPATCH_IOCTL_CLEAN		CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1003, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 NTSTATUS IRPDistpatch(DEVICE_OBJECT *device, IRP *irp) {
 	DPrint("Called");
@@ -55,6 +57,15 @@ NTSTATUS IRPDistpatch(DEVICE_OBJECT *device, IRP *irp) {
 				case EYEPATCH_IOCTL_EXIT:
 					DriverUnload(selfDriverGlobal);
 					break;
+				case EYEPATCH_IOCTL_CLEAN:
+					__try {
+						if (clean::ClearPidDb() == false) {
+							DPrint("clean::ClearPidDb() failed");
+						}
+					} __except (EXCEPTION_EXECUTE_HANDLER) {
+						DPrint("clean::ClearPidDb() mem err");
+					}
+					break;
 				default:
 					DPrint("Unknown IoControlCode: %d", irpsp->Parameters.DeviceIoControl.IoControlCode);
 					break;
@@ -73,25 +84,45 @@ NTSTATUS IRPDistpatch(DEVICE_OBJECT *device, IRP *irp) {
 	return status;
 }
 
+void testing() {
+	DPrint("testing thread entry");
+
+	__try {
+		if (clean::ClearPidDb() == false) {
+			DPrint("clean::ClearPidDb() failed");
+		}
+		if (clean::ClearMmUnloadDrivers() == false) {
+			DPrint("clean::ClearMmUnloadDrivers() failed");
+		}
+	} __except (EXCEPTION_EXECUTE_HANDLER) {
+		DPrint("testing thread: memory access error");
+	}
+
+	DPrint("testing thread ret");
+}
+
 NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT driver, _In_ PUNICODE_STRING RegistryPath) {
-	// Driver object
 	DPrint("Loading driver, PDRIVER_OBJECT @ %p RegistryPath %wZ", driver, RegistryPath);
+
+	// driver object
 	driver->DriverUnload = DriverUnload;
 	selfDriverGlobal = driver;
 
-	// xor
+	// check xor works (only in dbg)
 	crypt::check();
 
-	// IOCTL
+	// ioctl + dispatch
 	PDEVICE_OBJECT deviceObject;
-	auto status = IoCreateDevice(driver, 0, &EYEPATCH_DEVICE_NAME, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, FALSE, &deviceObject);
+	auto dname = helpers::String(xcw(L"\\Device\\eyepatch"));
+	auto sname = helpers::String(xcw(L"\\??\\eyepatchlink"));
 
+	auto status = IoCreateDevice(driver, 0, &dname, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, FALSE, &deviceObject);
 	if (!NT_SUCCESS(status)) {
 		DPrint("IoCreateDevice failed");
 		return status;
 	}
 
-	status = IoCreateSymbolicLink(&EYEPATCH_SYMLINK_NAME, &EYEPATCH_DEVICE_NAME);
+	status = IoCreateSymbolicLink(&sname, &dname);
 	if (!NT_SUCCESS(status)) {
 		DPrint("IoCreateSymbolicLink failed");
 		return status;
@@ -101,6 +132,14 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT driver, _In_ PUNICODE_STRING RegistryPa
 		driver->MajorFunction[i] = IRPDistpatch;
 	}
 
+	// todo: make inline
+	HANDLE threadhandle;
+	if (NT_SUCCESS(PsCreateSystemThread(&threadhandle, STANDARD_RIGHTS_ALL, NULL, NULL, NULL, (PKSTART_ROUTINE)&testing, NULL))) {
+		ZwClose(threadhandle);
+	} else {
+		DPrint("failed to creating testing thread");
+	}
+
 	DPrint("Driver loaded");
 	return STATUS_SUCCESS;
 }
@@ -108,7 +147,8 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT driver, _In_ PUNICODE_STRING RegistryPa
 VOID DriverUnload(IN PDRIVER_OBJECT driver) {
 	DPrint("Unloading driver, PDRIVER_OBJECT @ %p", driver);
 
-	NTSTATUS status = IoDeleteSymbolicLink(&EYEPATCH_SYMLINK_NAME);
+	auto sname = helpers::String(xcw(L"\\??\\eyepatchlink"));
+	NTSTATUS status = IoDeleteSymbolicLink(&sname);
 	if (!NT_SUCCESS(status)) {
 		DPrint("IoDeleteSymbolicLink failed");
 	}
