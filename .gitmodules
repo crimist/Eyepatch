@@ -1,0 +1,3 @@
+[submodule "anti-cheat-emulator"]
+	path = anti-cheat-emulator
+	url = https://github.com/ApexLegendsUC/anti-cheat-emulator
