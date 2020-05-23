@@ -5,6 +5,15 @@
 #include "clean.h"
 #include "helpers.h"
 
+// vm freeze:
+//	watch logs: `Get-Content C:\Users\mrmai\re\vms\win10x64_old\vmware.log -Wait`
+//	notes:
+//		increasing buffers doesn't fix the problem
+//		using `vmxnet3` fixes it but doesn't work with kernel debugging
+//		`e1000e` freezes but works with kern debug
+
+// windows kernel source: https://github.com/Zer0Mem0ry/ntoskrnl
+
 // todo: try to load unsigned
 //	check if it shows up in the list if loaded w/ these
 //	https://github.com/z175/kdmapper
@@ -16,10 +25,11 @@
 // todo: use these to test if the bypasses work
 //	test detection w/ this driver: https://github.com/ApexLegendsUC/anti-cheat-emulator
 //	info: https://secret.club/2020/03/31/battleye-developer-tracking.html
+//	test detecting using this func: https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/rtl/ldrreloc/process_module_information.htm
 
 // todo: maybe turn driver signing off so that $WDKTestSign isn't in the binary to be sigged
 
-DRIVER_OBJECT *selfDriverGlobal = nullptr;
+DRIVER_OBJECT* selfDriver = nullptr;
 
 // https://github.com/alxbrn/km-um-communication
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/defining-i-o-control-codes
@@ -52,10 +62,10 @@ NTSTATUS IRPDistpatch(DEVICE_OBJECT *device, IRP *irp) {
 					crim::WalkDrivers();
 					break;
 				case EYEPATCH_IOCTL_HIDE_DRIVER:
-					crim::HideDriverSelf(selfDriverGlobal);
+					crim::HideDriverSelf(selfDriver);
 					break;
 				case EYEPATCH_IOCTL_EXIT:
-					DriverUnload(selfDriverGlobal);
+					DriverUnload(selfDriver);
 					break;
 				case EYEPATCH_IOCTL_CLEAN:
 					__try {
@@ -94,6 +104,9 @@ void testing() {
 		if (clean::ClearMmUnloadDrivers() == false) {
 			DPrint("clean::ClearMmUnloadDrivers() failed");
 		}
+		if (clean::HidePsLoadedModuleList((uintptr_t)selfDriver->DriverSection) == false) {
+			DPrint("clean::ClearMmUnloadDrivers() failed");
+		}
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
 		DPrint("testing thread: memory access error");
 	}
@@ -105,8 +118,10 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT driver, _In_ PUNICODE_STRING RegistryPa
 	DPrint("Loading driver, PDRIVER_OBJECT @ %p RegistryPath %wZ", driver, RegistryPath);
 
 	// driver object
+	selfDriver = driver;
 	driver->DriverUnload = DriverUnload;
-	selfDriverGlobal = driver;
+	DPrint("Clearing driver name: %wZ", driver->DriverName);
+	driver->DriverName.Length = 0;
 
 	// check xor works (only in dbg)
 	crypt::check();
@@ -134,7 +149,7 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT driver, _In_ PUNICODE_STRING RegistryPa
 
 	// todo: make inline
 	HANDLE threadhandle;
-	if (NT_SUCCESS(PsCreateSystemThread(&threadhandle, STANDARD_RIGHTS_ALL, NULL, NULL, NULL, (PKSTART_ROUTINE)&testing, NULL))) {
+	if (NT_SUCCESS(PsCreateSystemThread(&threadhandle, STANDARD_RIGHTS_ALL, 0, 0, 0, (PKSTART_ROUTINE)&testing, 0))) {
 		ZwClose(threadhandle);
 	} else {
 		DPrint("failed to creating testing thread");
@@ -158,7 +173,7 @@ VOID DriverUnload(IN PDRIVER_OBJECT driver) {
 	// no outstanding references to it. However, if any outstanding references remain, the I/O manager marks
 	// the device object as "delete pending" and deletes the device object when the references are released."
 	// TODO: force close the user handle
-	if (driver->DeviceObject != NULL) {
+	if (driver->DeviceObject != 0) {
 		IoDeleteDevice(driver->DeviceObject);
 	}
 

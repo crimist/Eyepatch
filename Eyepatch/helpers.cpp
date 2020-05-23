@@ -11,11 +11,8 @@ UNICODE_STRING helpers::String(const wchar_t *data) {
 }
 
 // need to use struct since we can't use std::tuple
-auto helpers::GetModuleInfo(const char* name) {
-	struct info_t {
-		uintptr_t addr;
-		uint32_t size;
-	} info = {0};
+helpers::modinfo helpers::GetModuleInfo(const char* name) {
+	helpers::modinfo nfo = {0};
 	auto modules = new(NonPagedPoolNx) nt::RTL_PROCESS_MODULES;
 	ULONG retlen;
 
@@ -23,21 +20,21 @@ auto helpers::GetModuleInfo(const char* name) {
 	if (!NT_SUCCESS(status)) {
 		DPrint("ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x", status);
 		delete modules;
-		return info;
+		return nfo;
 	}
 
-	for (auto i = 0; i < modules->NumberOfModules; i++) {
+	for (auto i = 0U; i < modules->NumberOfModules; i++) {
 		if (strstr(modules->Modules[i].FullPathName, name) != NULL) {
-			info.addr = (uintptr_t)modules->Modules[i].ImageBase;
-			info.size = modules->Modules[i].ImageSize;
+			nfo.addr = (uintptr_t)modules->Modules[i].ImageBase;
+			nfo.size = modules->Modules[i].ImageSize;
 			break;
 		}
 	}
 
-	DPrint("Found module %s @ %p size %X", name, info.addr, info.size);
+	DPrint("Found module %s @ %p size %X", name, nfo.addr, nfo.size);
 
 	delete modules;
-	return info;
+	return nfo;
 }
 
 uintptr_t helpers::AOBScan(uintptr_t addr, uint64_t len, const char* pattern, const char* mask) {
@@ -66,6 +63,38 @@ uintptr_t helpers::AOBScan(uintptr_t addr, uint64_t len, const char* pattern, co
 	}
 
 	return 0;
+}
+
+helpers::mutliaddrs helpers::AOBScanMulti(uintptr_t addr, uint64_t len, const char* pattern, const char* mask) {
+	auto patLen = strlen(mask);
+	auto matches = 0;
+	auto ptr = addr, optr = addr;
+	mutliaddrs addrs = {0};
+
+	while (ptr < addr + len) {
+		if (*(uint8_t*)ptr == (uint8_t)pattern[matches] || (uint8_t)mask[matches] == '?') {
+			if (matches == 0) {
+				optr = ptr;
+			}
+			if (matches == patLen - 1) {
+				addrs.addr[addrs.len] = optr;
+				if (++addrs.len > 0xF) {
+					DPrint("found more than 0xF matches, breaking out");
+					break;
+				}
+			}
+			matches++;
+		} else {
+			if (matches > 0) {
+				matches = 0;
+				ptr = optr;
+			}
+		}
+
+		ptr++;
+	}
+
+	return addrs;
 }
 
 uintptr_t helpers::FindInModule(const char* name, const char* pattern, const char* mask) {

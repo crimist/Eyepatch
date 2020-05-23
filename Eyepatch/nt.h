@@ -1,5 +1,7 @@
 #pragma once
 
+// todo: this might be sigged https://www.unknowncheats.me/forum/anti-cheat-bypass/367444-getting-banned-clearing-piddb-table.html
+
 namespace nt {
 	const auto SystemModuleInformation = 0x0B;
 
@@ -61,4 +63,11 @@ namespace nt {
 		NTSTATUS		LoadStatus;
 		char			_0x0028[16]; // data from the shim engine, or uninitialized memory for custom drivers
 	} _piddbcache, piddbcache;
+
+	typedef struct _UNLOADED_DRIVERS {
+		UNICODE_STRING Name;
+		PVOID StartAddress;
+		PVOID EndAddress;
+		LARGE_INTEGER CurrentTime;
+	} UNLOADED_DRIVERS, *PUNLOADED_DRIVERS;
 }

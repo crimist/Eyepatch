@@ -86,7 +86,8 @@ namespace crypt {
 #endif
 
 // xor crypt integer
-#define xci(num, type) []{ constexpr crypt::XorNum<type> expr(num); return expr; }().decrypt()
+#define xci(num) []{ constexpr crypt::XorNum expr(num); return expr; }().decrypt()
+#define xcit(num, type) []{ constexpr crypt::XorNum<type> expr(num); return expr; }().decrypt()
 
 namespace crypt {
 	inline void check() {
@@ -99,8 +100,8 @@ namespace crypt {
 		#define CRYPT_CHECK_STRING "qwertyuiop[]{}\\|\"\';:123%$#@!~"
 		#define CRYPT_CHECK_STRING_WIDE L"qwertyuiop[]{}\\|\"\';:123%$#@!~"
 
-		RTL_SOFT_ASSERTMSG(CRYPT_CHECK_ERROR, xci(CRYPT_CHECK_INT, int) == CRYPT_CHECK_INT);
-		RTL_SOFT_ASSERTMSG(CRYPT_CHECK_ERROR, xci(CRYPT_CHECK_INT64, int64_t) == CRYPT_CHECK_INT64);
+		RTL_SOFT_ASSERTMSG(CRYPT_CHECK_ERROR, xci(CRYPT_CHECK_INT) == CRYPT_CHECK_INT);
+		RTL_SOFT_ASSERTMSG(CRYPT_CHECK_ERROR, xci(CRYPT_CHECK_INT64) == CRYPT_CHECK_INT64);
 		RTL_SOFT_ASSERTMSG(CRYPT_CHECK_ERROR, (strcmp(xc(CRYPT_CHECK_STRING), CRYPT_CHECK_STRING) == 0));
 		RTL_SOFT_ASSERTMSG(CRYPT_CHECK_ERROR, (wcscmp(xcw(CRYPT_CHECK_STRING_WIDE), CRYPT_CHECK_STRING_WIDE) == 0));
 

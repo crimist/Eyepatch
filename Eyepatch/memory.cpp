@@ -3,12 +3,20 @@
 
 // overload the default op
 void* __cdecl operator new(size_t size) {
+	#if DBG
 	return ExAllocatePoolWithTag(NonPagedPoolNx, size, EYEPATCH_MEMORY_TAG);
+	#else 
+	return ExAllocatePool(NonPagedPoolNx, size);
+	#endif
 }
 
 // provide an overloader for pool & tag definition
 void* __cdecl operator new(size_t size, POOL_TYPE pool, ULONG tag) {
+	#if DBG
 	return ExAllocatePoolWithTag(pool, size, tag);
+	#else 
+	return ExAllocatePool(pool, size);
+	#endif
 }
 
 void __cdecl operator delete(void* p) {

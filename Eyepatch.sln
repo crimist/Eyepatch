@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Eyepatch", "Eyepatch\Eyepat
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IOCTLCaller", "IOCTLCaller\IOCTLCaller.vcxproj", "{CFB6AE90-DA5E-4F7C-A5B1-0D4084C7509F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "checker", "checker\checker.vcxproj", "{B516040F-C750-487A-A015-03420C2BE0C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -29,6 +31,15 @@ Global
 		{CFB6AE90-DA5E-4F7C-A5B1-0D4084C7509F}.Release|x64.Build.0 = Release|x64
 		{CFB6AE90-DA5E-4F7C-A5B1-0D4084C7509F}.vm|x64.ActiveCfg = Release|x64
 		{CFB6AE90-DA5E-4F7C-A5B1-0D4084C7509F}.vm|x64.Build.0 = Release|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.Debug|x64.ActiveCfg = Debug|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.Debug|x64.Build.0 = Debug|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.Debug|x64.Deploy.0 = Debug|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.Release|x64.ActiveCfg = Release|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.Release|x64.Build.0 = Release|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.Release|x64.Deploy.0 = Release|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.vm|x64.ActiveCfg = Debug|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.vm|x64.Build.0 = Debug|x64
+		{B516040F-C750-487A-A015-03420C2BE0C7}.vm|x64.Deploy.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
