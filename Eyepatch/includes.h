@@ -2,8 +2,8 @@
 
 #include <ntddk.h>
 #include <wdf.h>
-//#include <wsk.h> // winsock kernel
-//#pragma comment(lib, "netio.lib")
+#include <wsk.h> // winsock kernel
+#pragma comment(lib, "netio.lib")
 
 // debug print macro
 // https://docs.microsoft.com/en-us/cpp/preprocessor/predefined-macros?view=vs-2019

@@ -142,6 +142,7 @@ bool clean::ClearMmUnloadDrivers() {
 	// found proper offset (physical) @ 024BC09E from 233B040
 	// 24BC09E - 233B040 = 18105E
 
+	// todo: implement: https://github.com/frankie-11/eft-external/blob/master/EFT%20Kernel/socket-km/clean.hpp
 	for (auto max = offset + 0xFFFFFF; offset < max && MmIsAddressValid((void*)offset); offset++) {
 		if (*(int64_t*)offset == 0x74D2854DC98B4C00) {
 			DPrint("got offset match @ %p", offset);

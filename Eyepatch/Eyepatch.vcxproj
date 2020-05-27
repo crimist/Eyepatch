@@ -92,6 +92,7 @@
     </ClCompile>
     <ClCompile Include="driver_abuse.cpp" />
     <ClCompile Include="helpers.cpp" />
+    <ClCompile Include="ksock.cpp" />
     <ClCompile Include="memory.cpp" />
     <ClCompile Include="socket.cpp" />
   </ItemGroup>
@@ -101,6 +102,7 @@
     <ClInclude Include="driver_abuse.h" />
     <ClInclude Include="helpers.h" />
     <ClInclude Include="includes.h" />
+    <ClInclude Include="ksock.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="nt.h" />
     <ClInclude Include="socket.h" />

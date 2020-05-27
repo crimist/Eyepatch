@@ -1,35 +1,25 @@
-#if 0 // disable for now
 #include "includes.h"
 #include "socket.h"
 
-socket::socket() {}
-socket::~socket() {}
+socket::socket() {
+	const WSK_CLIENT_DISPATCH WskAppDispatch = {MAKE_WSK_VERSION(1, 0), 0, NULL};
+	this->clientNpi.ClientContext = NULL;
+	this->clientNpi.Dispatch = &WskAppDispatch;
 
-// Maybe use macro
-#define NT_OK if (!NT_SUCCESS(status)) { return status; }
-
-NTSTATUS socket::registerWSK() {
-	NTSTATUS status;
-	const WSK_CLIENT_DISPATCH WskAppDispatch = {
-		MAKE_WSK_VERSION(1,0), // Use WSK version 1.0
-		0,    // Reserved
-		NULL  // WskClientEvent callback not required for WSK version 1.0
-	};
-
-	wskClientNpi.ClientContext = NULL;
-	wskClientNpi.Dispatch = &WskAppDispatch;
-
-	status = WskRegister(&wskClientNpi, &wskRegistration);
+	auto status = WskRegister(&this->clientNpi, &this->registration);
 	if (!NT_SUCCESS(status)) {
-		return status;
+		DPrint("WskRegister failed %x", status);
+		return;
 	}
 
-	status = WskCaptureProviderNPI(&wskRegistration, WSK_INFINITE_WAIT, &wskProviderNpi);
+	status = WskCaptureProviderNPI(&this->registration, WSK_INFINITE_WAIT, &this->providerNpi);
 	if (!NT_SUCCESS(status)) {
-		return status;
+		DPrint("WskCaptureProviderNPI failed %x", status);
 	}
+}
 
-	return STATUS_SUCCESS;
+socket::~socket() {
+	// close socket
 }
 
 // https://github.com/hsluoyz/wskudp/blob/master/wsktcp/simplewsk.c
@@ -44,13 +34,13 @@ static NTSTATUS NTAPI CompletionRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp, P
 	return STATUS_MORE_PROCESSING_REQUIRED;
 }
 
-static NTSTATUS InitWskData(PIRP* pIrp, PKEVENT CompletionEvent) {
+NTSTATUS InitWskData(IRP** pIrp, KEVENT* CompletionEvent) {
 	ASSERT(pIrp);
 	ASSERT(CompletionEvent);
 
 	*pIrp = IoAllocateIrp(1, FALSE);
 	if (!*pIrp) {
-		DbgPrint("InitWskData(): IoAllocateIrp() failed\n");
+		DPrint("IoAllocateIrp failed");
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
@@ -60,7 +50,7 @@ static NTSTATUS InitWskData(PIRP* pIrp, PKEVENT CompletionEvent) {
 }
 
 NTSTATUS socket::create() {
-	KEVENT CompletionEvent = { 0 };
+	KEVENT CompletionEvent = {0};
 	PIRP Irp = NULL;
 	NTSTATUS status;
 
@@ -69,15 +59,14 @@ NTSTATUS socket::create() {
 		return status;
 	}
 
-	status = wskProviderNpi.Dispatch->WskSocket(wskProviderNpi.Client, AF_INET, SOCK_STREAM, IPPROTO_TCP, WSK_FLAG_LISTEN_SOCKET, NULL, NULL, NULL, NULL, NULL, NULL);
+	status = this->providerNpi.Dispatch->WskSocket(this->providerNpi.Client, AF_INET, SOCK_STREAM, IPPROTO_TCP, WSK_FLAG_LISTEN_SOCKET, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	if (status == STATUS_PENDING) {
 		KeWaitForSingleObject(&CompletionEvent, Executive, KernelMode, FALSE, NULL);
 		status = Irp->IoStatus.Status;
 	}
 
-	WskSocket = (PWSK_SOCKET)Irp->IoStatus.Information;
-
+	this->socketFd = (PWSK_SOCKET)Irp->IoStatus.Information;
 	IoFreeIrp(Irp);
 
 	if (!NT_SUCCESS(status)) {
@@ -88,7 +77,7 @@ NTSTATUS socket::create() {
 }
 
 NTSTATUS socket::close() {
-	KEVENT CompletionEvent = { 0 };
+	KEVENT CompletionEvent = {0};
 	PIRP Irp = NULL;
 	NTSTATUS status;
 
@@ -97,7 +86,7 @@ NTSTATUS socket::close() {
 		return status;
 	}
 
-	status = ((PWSK_PROVIDER_BASIC_DISPATCH)WskSocket->Dispatch)->WskCloseSocket(WskSocket, Irp);
+	status = ((PWSK_PROVIDER_BASIC_DISPATCH)this->socketFd->Dispatch)->WskCloseSocket(this->socketFd, Irp);
 	if (status == STATUS_PENDING) {
 		KeWaitForSingleObject(&CompletionEvent, Executive, KernelMode, FALSE, NULL);
 		status = Irp->IoStatus.Status;
@@ -113,10 +102,10 @@ NTSTATUS socket::close() {
 }
 
 NTSTATUS socket::bind() {
-	KEVENT CompletionEvent = { 0 };
+	KEVENT CompletionEvent = {0};
 	PIRP Irp = NULL;
 	NTSTATUS status;
-	SOCKADDR_IN addr = { 0 };
+	SOCKADDR_IN addr = {0};
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = INADDR_ANY;
 	addr.sin_port = 0x479C; // port # 40007
@@ -126,18 +115,18 @@ NTSTATUS socket::bind() {
 		return status;
 	}
 
-	status = ((PWSK_PROVIDER_CONNECTION_DISPATCH)WskSocket->Dispatch)->WskBind(WskSocket, (PSOCKADDR)&addr, 0, Irp);
+	status = ((PWSK_PROVIDER_CONNECTION_DISPATCH)this->socketFd->Dispatch)->WskBind(this->socketFd, (PSOCKADDR)&addr, 0, Irp);
 	if (status == STATUS_PENDING) {
 		KeWaitForSingleObject(&CompletionEvent, Executive, KernelMode, FALSE, NULL);
 		status = Irp->IoStatus.Status;
 	}
 
 	IoFreeIrp(Irp);
-	
+
 	if (!NT_SUCCESS(status)) {
 		return status;
 	}
 
 	return STATUS_SUCCESS;
 }
-#endif
+

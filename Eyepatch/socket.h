@@ -5,13 +5,12 @@ public:
 	socket();
 	~socket();
 
-	NTSTATUS socket::registerWSK();
 	NTSTATUS socket::create();
 	NTSTATUS socket::close();
 	NTSTATUS socket::bind();
 private:
-	WSK_REGISTRATION wskRegistration;
-	WSK_CLIENT_NPI wskClientNpi;
-	WSK_PROVIDER_NPI wskProviderNpi;
-	PWSK_SOCKET WskSocket = NULL;
+	WSK_REGISTRATION registration;
+	WSK_CLIENT_NPI clientNpi;
+	WSK_PROVIDER_NPI providerNpi;
+	PWSK_SOCKET socketFd;
 };
