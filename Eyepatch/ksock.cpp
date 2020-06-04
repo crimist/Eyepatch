@@ -1,6 +1,8 @@
 #include "includes.h"
 #include "ksock.h"
 
+// https://github.com/microsoft/Windows-driver-samples/blob/master/network/wsk/echosrv/wsksmple.c
+
 ksock::ksock(uint16_t port) {
 	static bool init = true;
 	if (init) {
@@ -20,7 +22,7 @@ ksock::~ksock() {
 	return;
 }
 
-bool recv(uintptr_t* buff, uint32_t len) {
+bool ksock::recv(uintptr_t* buff, uint32_t len) {
 	// recv off listen
 	return true;
 }

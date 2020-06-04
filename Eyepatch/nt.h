@@ -70,4 +70,12 @@ namespace nt {
 		PVOID EndAddress;
 		LARGE_INTEGER CurrentTime;
 	} UNLOADED_DRIVERS, *PUNLOADED_DRIVERS;
+
+	#define MM_UNLOADED_DRIVERS_SIZE 50
+	typedef struct _MM_UNLOADED_DRIVER {
+		UNICODE_STRING 	Name;
+		PVOID 			ModuleStart;
+		PVOID 			ModuleEnd;
+		ULONG64 		UnloadTime;
+	} MM_UNLOADED_DRIVER, *PMM_UNLOADED_DRIVER;
 }

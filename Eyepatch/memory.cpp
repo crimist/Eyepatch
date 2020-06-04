@@ -11,7 +11,7 @@ void* __cdecl operator new(size_t size) {
 }
 
 // provide an overloader for pool & tag definition
-void* __cdecl operator new(size_t size, POOL_TYPE pool, ULONG tag) {
+void* __cdecl operator new(size_t size, POOL_TYPE pool, uint32_t tag) {
 	#if DBG
 	return ExAllocatePoolWithTag(pool, size, tag);
 	#else 

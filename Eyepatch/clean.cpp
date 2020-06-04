@@ -76,8 +76,7 @@ bool clean::ClearPidDb() {
 
 		// first check = our driver name
 		// second/third check = cpuz/intel
-		// last check = our driver by using dates newer than 2020 May 23
-		if (RtlCompareUnicodeString(&name, &selfname, TRUE) == 0 || cache_entry->TimeDateStamp == xci(0x57CD1415U) || cache_entry->TimeDateStamp == xci(0x5284EAC3U) || cache_entry->TimeDateStamp > xci(0x5EC8DFA3)) {
+		if (RtlCompareUnicodeString(&name, &selfname, TRUE) == 0 || cache_entry->TimeDateStamp == xci(0x57CD1415U) || cache_entry->TimeDateStamp == xci(0x5284EAC3U)) {
 			DPrint("bad driver detected, fixxing");
 
 			#if OVERWRITE
@@ -120,57 +119,74 @@ bool clean::ClearPidDb() {
 	return true;
 }
 
+extern "C" uintptr_t ResolveRelativeAddress(uintptr_t instruction, uint32_t offsetOffset, uint32_t instructionSize) {
+	auto instr = (uint64_t)instruction;
+	int32_t ripOffset = *(uint32_t*)(instr + offsetOffset);
+	auto ResolvedAddr = (uintptr_t)(instr + instructionSize + ripOffset);
+
+	return ResolvedAddr;
+}
+
 bool clean::ClearMmUnloadDrivers() {
-	// credit: https://www.unknowncheats.me/forum/anti-cheat-bypass/231400-clearing-mmunloadeddrivers-mmlastunloadeddriver.html
+	auto info = helpers::GetModuleInfo(xc("ntoskrnl.exe"));
+	if (info.addr == 0 || info.size == 0) {
+		DPrint("Failed to find ntoskrnl.exe module");
+		return false;
+	}
 
-	// not actually nessisary for our own driver but needed for cpuz/intel vuln drivers
-	// https://github.com/Zer0Mem0ry/ntoskrnl/blob/a1eded2d8efb071685e1f3cc59a1054f8545b73a/Mm/sysload.c#L3399
-	// basically if the module has a DriverName with length 0 than it thinks the driver failed to load and doesn't add it to the unloaded list
+	auto MmUnloadedDriversInstr = helpers::AOBScan(info.addr, info.size, xc("\x4C\x8B\x15\x00\x00\x00\x00\x4C\x8B\xC9"), xc("xxx????xxx"));
+	auto MmLastUnloadedDriverInstr = helpers::AOBScan(info.addr, info.size, xc("\x8B\x05\x00\x00\x00\x00\x83\xF8\x32"), xc("xx????xxx"));
 
-	struct _ {
-		static uintptr_t GetRelativeOffset(uint32_t* relAddress) {
-			return (uintptr_t)relAddress + sizeof(uint32_t) + *relAddress;
-		}
+	if (MmUnloadedDriversInstr == 0 && MmLastUnloadedDriverInstr == 0) {
+		DPrint("Failed to find instructions");
+		return false;
+	}
+
+	DPrint("found instruction MmUnloadedDrivers @ %p %p", MmUnloadedDriversInstr, MmGetPhysicalAddress((void*)MmUnloadedDriversInstr));
+	DPrint("found instruction MmLastUnloadedDriver @ %p %p", MmLastUnloadedDriverInstr, MmGetPhysicalAddress((void*)MmLastUnloadedDriverInstr));
+
+	auto MmUnloadedDrivers = *(nt::MM_UNLOADED_DRIVER**)ResolveRelativeAddress(MmUnloadedDriversInstr, 3, 7);
+	auto MmLastUnloadedDriver = (PULONG)ResolveRelativeAddress(MmLastUnloadedDriverInstr, 2, 6);
+
+	DPrint("found MmUnloadedDrivers @ %p %p", MmUnloadedDrivers, MmGetPhysicalAddress((void*)MmUnloadedDrivers));
+	DPrint("found MmLastUnloadedDriver @ %p %p", MmLastUnloadedDriver, MmGetPhysicalAddress((void*)MmLastUnloadedDriver));
+
+	// todo: clean more vuln drivers
+	UNICODE_STRING vulnNames[] = {
+		helpers::String(xcw(L"iqvw64e.sys")), // kdmapper
+		helpers::String(xcw(L"Capcom.sys")),
+		helpers::String(xcw(L"Eyepatch.sys")), // self
+		helpers::String(xcw(L"gdrv.sys")),  // gdrv loader
 	};
+	auto vulnLen = sizeof(vulnNames) / sizeof(vulnNames[0]);
 
-	auto offset = (uint8_t*)MmCopyMemory;
-	DPrint("MmCopyMemory: virt: %p physical: %p", offset, MmGetPhysicalAddress((void*)offset));
-	// MmCopyMemory:
-	//	FFFFF8040C534040
-	//	FFFFF80107140040
+	for (auto i = 0; i < MM_UNLOADED_DRIVERS_SIZE; i++) {
+		nt::MM_UNLOADED_DRIVER* entry = &MmUnloadedDrivers[i];
 
-	// found proper offset (physical) @ 024BC09E from 233B040
-	// 24BC09E - 233B040 = 18105E
+		DPrint("MmUnloadedDrivers [%d]: name: %wZ time: %llu start: %p end: %p", i, &entry->Name, entry->UnloadTime, entry->ModuleStart, entry->ModuleEnd);
 
-	// todo: implement: https://github.com/frankie-11/eft-external/blob/master/EFT%20Kernel/socket-km/clean.hpp
-	for (auto max = offset + 0xFFFFFF; offset < max && MmIsAddressValid((void*)offset); offset++) {
-		if (*(int64_t*)offset == 0x74D2854DC98B4C00) {
-			DPrint("got offset match @ %p", offset);
+		for (auto z = 0; z < vulnLen; z++) {
+			if (RtlCompareUnicodeString(&entry->Name, &vulnNames[z], TRUE) == 0) {
+				DPrint("Got bad driver");
 
-			auto MmUnloadedDrivers = _::GetRelativeOffset((uint32_t*)(offset - 3));
-			if (MmIsAddressValid((void*)MmUnloadedDrivers)) {
-				DPrint("valid offset match address");
-				//*MmUnloadedDrivers = 0;
+				// Clear
+				ExFreePoolWithTag(entry->Name.Buffer, 'TDmM'); // tag for Mm section of kernel
+				//if (i == MM_UNLOADED_DRIVERS_SIZE - 1)
+				RtlFillMemory(entry, sizeof(nt::MM_UNLOADED_DRIVER), 0x00);
 
-				auto unloaded = (nt::UNLOADED_DRIVERS*)MmUnloadedDrivers;
-				auto i = 0;
-				while (MmIsAddressValid((void*)unloaded) && unloaded->StartAddress != 0 && unloaded->EndAddress != 0 && unloaded->CurrentTime.QuadPart != 0) {
-					if (i++ > 50) {
-						DPrint("detected inf loop, breaking");
-						break;
-					}
-
-					DPrint("unloaded %d: name: %wZ time: %llu start: %p end: %p", i, &unloaded->Name, unloaded->CurrentTime.QuadPart, unloaded->StartAddress, unloaded->EndAddress);
-
-					unloaded++;
+				// shift array
+				for (auto c = i; c < vulnLen - 1; c++) {
+					memcpy(&MmUnloadedDrivers[c + 1], &MmUnloadedDrivers[c], sizeof(nt::MM_UNLOADED_DRIVER));
 				}
+
+				// step back
+				i--;
+				break;
 			}
-			return true;
 		}
 	}
 
-	DPrint("ClearMmUnloadDrivers failed to find sig");
-	return false;
+	return true;
 }
 
 bool clean::HidePsLoadedModuleList(uintptr_t driversection) {

@@ -73,14 +73,14 @@ HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfC
 WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
 
 [Eyepatch_Device.NT.Wdf]
-KmdfService =  Eyepatch, Eyepatch_wdfsect
+KmdfService = Eyepatch, Eyepatch_wdfsect
 [Eyepatch_wdfsect]
 KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
-SPSVCINST_ASSOCSERVICE= 0x00000002
-ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
-ClassName="Samples" ; TODO: edit ClassName
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+ClassName = "Samples" ; TODO: edit ClassName
 DiskName = "Eyepatch Installation Disk"
 Eyepatch.DeviceDesc = "Eyepatch Device"
 Eyepatch.SVCDESC = "Eyepatch Service"
