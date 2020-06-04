@@ -128,6 +128,8 @@ extern "C" uintptr_t ResolveRelativeAddress(uintptr_t instruction, uint32_t offs
 }
 
 bool clean::ClearMmUnloadDrivers() {
+	// https://github.com/frankie-11/eft-external/blob/master/EFT%20Kernel/socket-km/clean.hpp#L199
+
 	auto info = helpers::GetModuleInfo(xc("ntoskrnl.exe"));
 	if (info.addr == 0 || info.size == 0) {
 		DPrint("Failed to find ntoskrnl.exe module");
