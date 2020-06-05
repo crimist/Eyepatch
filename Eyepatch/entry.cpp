@@ -12,12 +12,16 @@
 //		using `vmxnet3` fixes it but doesn't work with kernel debugging
 //		`e1000e` freezes but works with kern debug
 
+// !!! Quit dbg session like this: https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/ending-a-debugging-session-in-windbg#ending-a-kernel-mode-session-without-exiting
+// see if it crashes or not
+
 // windows kernel source: https://github.com/Zer0Mem0ry/ntoskrnl
 
 // todo: try to load unsigned
 //	check if it shows up in the list if loaded w/ these
 //	https://github.com/z175/kdmapper
-//	maybe https://github.com/alxbrn/gdrv-loader
+//	https://github.com/alxbrn/gdrv-loader
+//	https://www.unknowncheats.me/forum/anti-cheat-bypass/252685-drvmap-driver-manual-mapper-using-capcom.html
 
 // todo: use different communication method w/ usermode since I'm pretty sure io dispatch is detected as fuck
 //	examples: https://github.com/alxbrn/km-um-communication
@@ -27,7 +31,7 @@
 //	info: https://secret.club/2020/03/31/battleye-developer-tracking.html
 //	test detecting using this func: https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/rtl/ldrreloc/process_module_information.htm
 
-// todo: maybe turn driver signing off so that $WDKTestSign isn't in the binary to be sigged
+// todo: maybe turn driver signing off for unsigned load so that $WDKTestSign isn't in the binary to be sigged
 
 DRIVER_OBJECT* selfDriver = nullptr;
 

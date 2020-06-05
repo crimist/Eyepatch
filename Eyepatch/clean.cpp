@@ -128,7 +128,8 @@ extern "C" uintptr_t ResolveRelativeAddress(uintptr_t instruction, uint32_t offs
 }
 
 bool clean::ClearMmUnloadDrivers() {
-	// https://github.com/frankie-11/eft-external/blob/master/EFT%20Kernel/socket-km/clean.hpp#L199
+	// credit: https://github.com/frankie-11/eft-external/blob/master/EFT%20Kernel/socket-km/clean.hpp#L199
+	// https://github.com/Zer0Mem0ry/ntoskrnl/blob/a1eded2d8efb071685e1f3cc59a1054f8545b73a/Mm/sysload.c#L42
 
 	auto info = helpers::GetModuleInfo(xc("ntoskrnl.exe"));
 	if (info.addr == 0 || info.size == 0) {
@@ -144,14 +145,14 @@ bool clean::ClearMmUnloadDrivers() {
 		return false;
 	}
 
-	DPrint("found instruction MmUnloadedDrivers @ %p %p", MmUnloadedDriversInstr, MmGetPhysicalAddress((void*)MmUnloadedDriversInstr));
-	DPrint("found instruction MmLastUnloadedDriver @ %p %p", MmLastUnloadedDriverInstr, MmGetPhysicalAddress((void*)MmLastUnloadedDriverInstr));
+	DPrint("found instruction MmUnloadedDrivers @ %p", MmUnloadedDriversInstr);
+	DPrint("found instruction MmLastUnloadedDriver @ %p", MmLastUnloadedDriverInstr);
 
 	auto MmUnloadedDrivers = *(nt::MM_UNLOADED_DRIVER**)ResolveRelativeAddress(MmUnloadedDriversInstr, 3, 7);
-	auto MmLastUnloadedDriver = (PULONG)ResolveRelativeAddress(MmLastUnloadedDriverInstr, 2, 6);
+	auto MmLastUnloadedDriver = (ULONG*)ResolveRelativeAddress(MmLastUnloadedDriverInstr, 2, 6);
 
-	DPrint("found MmUnloadedDrivers @ %p %p", MmUnloadedDrivers, MmGetPhysicalAddress((void*)MmUnloadedDrivers));
-	DPrint("found MmLastUnloadedDriver @ %p %p", MmLastUnloadedDriver, MmGetPhysicalAddress((void*)MmLastUnloadedDriver));
+	DPrint("found MmUnloadedDrivers @ %p", MmUnloadedDrivers);
+	DPrint("found MmLastUnloadedDriver @ %p = %d", MmLastUnloadedDriver, *MmLastUnloadedDriver);
 
 	// todo: clean more vuln drivers
 	UNICODE_STRING vulnNames[] = {
@@ -159,27 +160,39 @@ bool clean::ClearMmUnloadDrivers() {
 		helpers::String(xcw(L"Capcom.sys")),
 		helpers::String(xcw(L"Eyepatch.sys")), // self
 		helpers::String(xcw(L"gdrv.sys")),  // gdrv loader
+		//helpers::String(xcw(L"WinRing0x64.sys")), // for testing only
 	};
 	auto vulnLen = sizeof(vulnNames) / sizeof(vulnNames[0]);
 
-	for (auto i = 0; i < MM_UNLOADED_DRIVERS_SIZE; i++) {
+	for (auto i = 0; i < MI_UNLOADED_DRIVERS; i++) {
 		nt::MM_UNLOADED_DRIVER* entry = &MmUnloadedDrivers[i];
 
-		DPrint("MmUnloadedDrivers [%d]: name: %wZ time: %llu start: %p end: %p", i, &entry->Name, entry->UnloadTime, entry->ModuleStart, entry->ModuleEnd);
+		DPrint("MmUnloadedDrivers [%d]<%p>: name: %wZ time: %llu start: %p end: %p", i, entry, &entry->Name, entry->UnloadTime, entry->ModuleStart, entry->ModuleEnd);
 
 		for (auto z = 0; z < vulnLen; z++) {
 			if (RtlCompareUnicodeString(&entry->Name, &vulnNames[z], TRUE) == 0) {
-				DPrint("Got bad driver");
+				DPrint("Clearing malicious driver");
 
 				// Clear
-				ExFreePoolWithTag(entry->Name.Buffer, 'TDmM'); // tag for Mm section of kernel
-				//if (i == MM_UNLOADED_DRIVERS_SIZE - 1)
-				RtlFillMemory(entry, sizeof(nt::MM_UNLOADED_DRIVER), 0x00);
+				memset(entry->Name.Buffer, 0x00, entry->Name.Length); // zero out name from heap
+				ExFreePoolWithTag(entry->Name.Buffer, 'TDmM'); // free name ptr using tag for Mm section of kernel
+				memset(entry, 0x00, sizeof(nt::MM_UNLOADED_DRIVER)); // zero out entry
 
 				// shift array
-				for (auto c = i; c < vulnLen - 1; c++) {
-					memcpy(&MmUnloadedDrivers[c + 1], &MmUnloadedDrivers[c], sizeof(nt::MM_UNLOADED_DRIVER));
+				for (auto c = i; c < MI_UNLOADED_DRIVERS - 1; c++) {
+					memcpy(&MmUnloadedDrivers[c], &MmUnloadedDrivers[c + 1], sizeof(nt::MM_UNLOADED_DRIVER));
 				}
+				(*MmLastUnloadedDriver)--; // move new entries a step back
+				/* asm:
+				*x++;
+					add QWORD PTR [rbp-8], 4
+				(*x)++;
+					mov     rax, QWORD PTR [rbp-8]
+					mov     eax, DWORD PTR [rax]
+					lea     edx, [rax+1]
+					mov     rax, QWORD PTR [rbp-8]
+					mov     DWORD PTR [rax], edx
+				*/
 
 				// step back
 				i--;
@@ -188,6 +201,7 @@ bool clean::ClearMmUnloadDrivers() {
 		}
 	}
 
+	DPrint("Cleard MmUnloadedDrivers, MmLastUnloadedDriver = %d", *MmLastUnloadedDriver);
 	return true;
 }
 

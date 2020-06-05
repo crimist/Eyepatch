@@ -71,7 +71,10 @@ namespace nt {
 		LARGE_INTEGER CurrentTime;
 	} UNLOADED_DRIVERS, *PUNLOADED_DRIVERS;
 
-	#define MM_UNLOADED_DRIVERS_SIZE 50
+	// if exceeded it'll start to overwrite existing entries
+	// https://github.com/Zer0Mem0ry/ntoskrnl/blob/a1eded2d8efb071685e1f3cc59a1054f8545b73a/Mm/sysload.c#L3427
+	#define MI_UNLOADED_DRIVERS 50
+
 	typedef struct _MM_UNLOADED_DRIVER {
 		UNICODE_STRING 	Name;
 		PVOID 			ModuleStart;
