@@ -1,6 +1,14 @@
 #include "pch.h"
 #include "ignore.h"
 
+template<typename ... T>
+uint64_t call_hook(const T ... arguments) {
+	void* control_function = GetProcAddress(LoadLibraryA("win32u.dll"), "NtDxgkGetTrackedWorkloadStatistics");
+	const auto control = static_cast<uint64_t(__stdcall*)(T...)>(control_function);
+
+	return control(arguments ...);
+}
+
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/defining-i-o-control-codes
 #define EYEPATCH_IOCTL_WALK_DRIVERS	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1000, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define EYEPATCH_IOCTL_HIDE_DRIVER	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1001, METHOD_BUFFERED, FILE_ANY_ACCESS)

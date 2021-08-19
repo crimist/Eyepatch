@@ -1,6 +1,7 @@
 #include "includes.h"
 #include "socket.h"
 
+#if 0
 socket::socket() {
 	const WSK_CLIENT_DISPATCH WskAppDispatch = {MAKE_WSK_VERSION(1, 0), 0, NULL};
 	this->clientNpi.ClientContext = NULL;
@@ -129,4 +130,4 @@ NTSTATUS socket::bind() {
 
 	return STATUS_SUCCESS;
 }
-
+#endif

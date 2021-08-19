@@ -4,16 +4,15 @@
 #include "xor.h"
 #include "clean.h"
 #include "helpers.h"
+#include "memory.h"
+#include "kern_hook.h"
 
-// vm freeze:
-//	watch logs: `Get-Content C:\Users\mrmai\re\vms\win10x64_old\vmware.log -Wait`
-//	notes:
-//		increasing buffers doesn't fix the problem
-//		using `vmxnet3` fixes it but doesn't work with kernel debugging
-//		`e1000e` freezes but works with kern debug
-
-// !!! Quit dbg session like this: https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/ending-a-debugging-session-in-windbg#ending-a-kernel-mode-session-without-exiting
+// quit dbg session like this: https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/ending-a-debugging-session-in-windbg#ending-a-kernel-mode-session-without-exiting
 // see if it crashes or not
+
+// Kernel thread hijacking lol:
+// https://github.com/NMan1/Rainbow-Six-Cheat/blob/a0cb718624d7880ede95f4a252345dae9e816fc7/OverflowDriver/OverflowDriver/Driver.c#L564
+// could highjack rip of thread in another driver to function and start thread from other process so that thread seems mapped to driver
 
 // windows kernel source: https://github.com/Zer0Mem0ry/ntoskrnl
 
@@ -23,8 +22,9 @@
 //	https://github.com/alxbrn/gdrv-loader
 //	https://www.unknowncheats.me/forum/anti-cheat-bypass/252685-drvmap-driver-manual-mapper-using-capcom.html
 
-// todo: use different communication method w/ usermode since I'm pretty sure io dispatch is detected as fuck
+// todo: use different communication method w/ usermode since I'm pretty sure io dispatch is detected
 //	examples: https://github.com/alxbrn/km-um-communication
+//	maybe just use func highjack prob a lot faster than packets
 
 // todo: use these to test if the bypasses work
 //	test detection w/ this driver: https://github.com/ApexLegendsUC/anti-cheat-emulator
@@ -35,7 +35,6 @@
 
 DRIVER_OBJECT* selfDriver = nullptr;
 
-// https://github.com/alxbrn/km-um-communication
 // https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/defining-i-o-control-codes
 #define EYEPATCH_IOCTL_WALK_DRIVERS	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1000, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define EYEPATCH_IOCTL_HIDE_DRIVER	CTL_CODE(FILE_DEVICE_UNKNOWN, 0x1001, METHOD_BUFFERED, FILE_ANY_ACCESS)
@@ -111,6 +110,9 @@ void testing() {
 		if (clean::HidePsLoadedModuleList((uintptr_t)selfDriver->DriverSection) == false) {
 			DPrint("clean::ClearMmUnloadDrivers() failed");
 		}
+		if (doKernHook() == false) {
+			DPrint("doKernHook() failed");
+		}
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
 		DPrint("testing thread: memory access error");
 	}
@@ -131,8 +133,9 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT driver, _In_ PUNICODE_STRING RegistryPa
 	DPrint("Clearing driver name: %wZ", driver->DriverName);
 	driver->DriverName.Length = 0;
 
-	// check xor works (only in dbg)
+	// checks (only in dbg mode)
 	crypt::check();
+	memory::test(); // todo: test
 
 	// ioctl + dispatch
 	PDEVICE_OBJECT deviceObject;

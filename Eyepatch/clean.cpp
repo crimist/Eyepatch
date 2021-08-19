@@ -15,7 +15,7 @@ unsigned __int64 dereference(unsigned __int64 address, unsigned int offset) {
 bool clean::ClearPidDb() {
 	// todo
 	//	https://github.com/NMan1/Rainbow-Six-Cheat/blob/a0cb718624d7880ede95f4a252345dae9e816fc7/OverflowDriver/OverflowDriver/Clean.c
-	//		rewrite this cause it's sigged as fuck
+	//		rewrite this cause it's sigged
 	//	https://github.com/ApexLegendsUC/anti-cheat-emulator/blob/master/Source.cpp#L609
 	//		or try this one
 	//
@@ -89,7 +89,7 @@ bool clean::ClearPidDb() {
 
 			// todo:
 			//	test if removing ourself bsods sys
-			//	test if fucking with the list bsods sys
+			//	test if modifying the list bsods sys
 			auto selfEntry = (nt::piddbcache*)cache_entry;
 			auto prevEntry = (nt::piddbcache*)cache_entry->List.Blink;
 			auto nextEntry = (nt::piddbcache*)cache_entry->List.Flink;
@@ -240,5 +240,59 @@ bool clean::HidePsLoadedModuleList(uintptr_t driversection) {
 	//selfEntry->InLoadOrderLinks.Blink = (PLIST_ENTRY)prevEntry;
 
 	DPrint("Module hidden");
+	return true;
+}
+
+bool ClearName() {
+	HANDLE handle;
+	OBJECT_ATTRIBUTES attributes;
+	UNICODE_STRING dirName;
+	PVOID directory;
+
+	RtlInitUnicodeString(&dirName, L"\\Driver");
+	InitializeObjectAttributes(&attributes, &dirName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+	auto status = ZwOpenDirectoryObject(&handle, DIRECTORY_ALL_ACCESS, &attributes);
+	if (!NT_SUCCESS(status)) {
+		DPrint("ZwOpenDirectoryObject failed %X", status);
+		return false;
+	}
+
+	status = ObReferenceObjectByHandle(handle, DIRECTORY_ALL_ACCESS, nullptr, KernelMode, &directory, nullptr);
+	if (!NT_SUCCESS(status)) {
+		DPrint("ObReferenceObjectByHandle failed %X", status);
+		ZwClose(handle);
+		return false;
+	}
+
+	const auto directory_object = nt::POBJECT_DIRECTORY(directory);
+	ExAcquirePushLockExclusiveEx(&directory_object->Lock, 0);
+
+	for (auto entry : directory_object->HashBuckets) {
+		if (entry == nullptr)
+			continue;
+
+
+		while (entry != nullptr && entry->Object != nullptr) {
+			auto driver = PDRIVER_OBJECT(entry->Object);
+
+			for (auto i = 0; i < clean::vulnLen; i++) {
+				if (RtlCompareUnicodeString(&driver->DriverName, &helpers::String(clean::vulnNames[i].decrypt()), TRUE) == 0) {
+					entry = entry->ChainLink;
+					continue;
+				}
+			}
+
+			entry = entry->ChainLink;
+		}
+
+	}
+
+	ExReleasePushLockExclusiveEx(&directory_object->Lock, 0);
+
+	// Release the acquired resources back to the OS
+	ObDereferenceObject(directory);
+	ZwClose(handle);
+
 	return true;
 }

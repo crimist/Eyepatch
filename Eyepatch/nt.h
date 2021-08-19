@@ -2,11 +2,19 @@
 
 // todo: this might be sigged https://www.unknowncheats.me/forum/anti-cheat-bypass/367444-getting-banned-clearing-piddb-table.html
 
-namespace nt {
-	const auto SystemModuleInformation = 0x0B;
+extern "C" {
+	NTSTATUS NTAPI MmCopyVirtualMemory(PEPROCESS SourceProcess, PVOID SourceAddress, PEPROCESS TargetProcess, PVOID TargetAddress, SIZE_T BufferSize, KPROCESSOR_MODE PreviousMode, PSIZE_T ReturnSize);
+	NTSTATUS NTAPI ZwQuerySystemInformation(ULONG SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength); // http://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/query.htm
+	NTKERNELAPI PVOID NTAPI RtlFindExportedRoutineByName(_In_ PVOID ImageBase, _In_ PCCH RoutineNam);
+}
 
-	// http://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/query.htm
-	extern "C" NTSTATUS NTAPI ZwQuerySystemInformation(ULONG SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength);
+namespace nt {
+	const enum {
+		SystemProcessInformation = 0x05,
+		SystemModuleInformation = 0x0B,
+		SystemExtendedProcessInformation = 0x39,
+		SystemFullProcessInformation = 0x94,
+	};
 
 	struct RTL_PROCESS_MODULE_INFORMATION {
 		PVOID Section;
@@ -81,4 +89,47 @@ namespace nt {
 		PVOID 			ModuleEnd;
 		ULONG64 		UnloadTime;
 	} MM_UNLOADED_DRIVER, *PMM_UNLOADED_DRIVER;
+
+	typedef struct _SYSTEM_PROCESS_INFORMATION {
+		ULONG NextEntryOffset;
+		ULONG NumberOfThreads;
+		BYTE Reserved1[48];
+		UNICODE_STRING ImageName;
+		KPRIORITY BasePriority;
+		HANDLE UniqueProcessId;
+		PVOID Reserved2;
+		ULONG HandleCount;
+		ULONG SessionId;
+		PVOID Reserved3;
+		SIZE_T PeakVirtualSize;
+		SIZE_T VirtualSize;
+		ULONG Reserved4;
+		SIZE_T PeakWorkingSetSize;
+		SIZE_T WorkingSetSize;
+		PVOID Reserved5;
+		SIZE_T QuotaPagedPoolUsage;
+		PVOID Reserved6;
+		SIZE_T QuotaNonPagedPoolUsage;
+		SIZE_T PagefileUsage;
+		SIZE_T PeakPagefileUsage;
+		SIZE_T PrivatePageCount;
+		LARGE_INTEGER Reserved7[6];
+	} SYSTEM_PROCESS_INFORMATION;
+
+	typedef struct _DEVICE_MAP *PDEVICE_MAP;
+
+	typedef struct _OBJECT_DIRECTORY_ENTRY {
+		_OBJECT_DIRECTORY_ENTRY* ChainLink;
+		PVOID Object;
+		ULONG HashValue;
+	} OBJECT_DIRECTORY_ENTRY, *POBJECT_DIRECTORY_ENTRY;
+
+	typedef struct _OBJECT_DIRECTORY {
+		POBJECT_DIRECTORY_ENTRY HashBuckets[37];
+		EX_PUSH_LOCK Lock;
+		PDEVICE_MAP DeviceMap;
+		ULONG SessionId;
+		PVOID NamespaceEntry;
+		ULONG Flags;
+	} OBJECT_DIRECTORY, *POBJECT_DIRECTORY;
 }

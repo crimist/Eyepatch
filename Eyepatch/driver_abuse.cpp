@@ -34,7 +34,7 @@ void crim::WalkDrivers() {
 	auto modules = new(NonPagedPoolNx) nt::RTL_PROCESS_MODULES;
 	ULONG retlen;
 	
-	auto status = nt::ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
+	auto status = ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
 	if (!NT_SUCCESS(status)) {
 		DPrint("ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x", status);
 		delete modules;
@@ -97,7 +97,7 @@ NTSTATUS crim::ForceUnloadDriver(char name[]) {
 	auto modules = new(NonPagedPoolNx) nt::RTL_PROCESS_MODULES;
 	ULONG retlen;
 
-	auto status = nt::ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
+	auto status = ZwQuerySystemInformation(nt::SystemModuleInformation, modules, sizeof(*modules), &retlen);
 	if (!NT_SUCCESS(status)) {
 		DPrint("ZwQuerySystemInformation(SystemModuleInformation...) failed with code %x", status);
 		delete modules;

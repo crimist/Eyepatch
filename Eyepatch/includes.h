@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ntddk.h>
+#include <ntifs.h> 
+#include <ntddk.h> // todo: not needed after including `ntifs.h`?
 #include <wdf.h>
 #include <wsk.h> // winsock kernel
 #pragma comment(lib, "netio.lib")

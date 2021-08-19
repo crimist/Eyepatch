@@ -42,9 +42,6 @@
     <ClCompile Include="helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ksock.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes.h">
@@ -74,7 +71,7 @@
     <ClInclude Include="helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ksock.h">
+    <ClInclude Include="kern_hook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
